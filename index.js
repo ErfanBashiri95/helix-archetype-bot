@@ -4,7 +4,7 @@ const { Telegraf } = require('telegraf');
 
 const BOT_TOKEN = process.env.BOT_TOKEN;
 const PORT = process.env.PORT || 3000;
-const APP_URL = process.env.APP_URL; // بعداً روی سرور ست می‌کنیم
+const APP_URL = process.env.APP_URL; // مثلا: https://helix-archetype-bot.onrender.com
 
 if (!BOT_TOKEN) {
   console.error('❌ BOT_TOKEN is missing.');
@@ -14,9 +14,7 @@ if (!BOT_TOKEN) {
 const bot = new Telegraf(BOT_TOKEN);
 const app = express();
 
-app.use(express.json());
-
-// ✅ /start
+// ✅ هندل /start
 bot.start((ctx) => {
   const name =
     (ctx.from.first_name || '') +
@@ -33,16 +31,18 @@ bot.on('text', (ctx) => {
   ctx.reply('بات فعلاً در حال آماده‌سازیه. بعداً سوال‌های شماره‌دار اینجا میان 🌀');
 });
 
-// ✅ healthcheck
+// ✅ healthcheck (برای Render / UptimeRobot)
 app.get('/health', (req, res) => {
   res.status(200).send('OK');
 });
 
-// ✅ مسیر وبهوک
+// ✅ مسیر وبهوک تلگرام
 const webhookPath = '/telegram-webhook';
-app.use(webhookPath, bot.webhookCallback(webhookPath));
 
-// ✅ ران شدن سرور و ست کردن وبهوک (وقتی APP_URL داشته باشیم)
+// فقط برای این مسیر body رو JSON بخون
+app.post(webhookPath, express.json(), bot.webhookCallback(webhookPath));
+
+// ✅ ران شدن سرور و ست کردن وبهوک
 app.listen(PORT, async () => {
   console.log(`🌐 Server running on port ${PORT}`);
 
@@ -58,10 +58,10 @@ app.listen(PORT, async () => {
       );
     }
   } else {
-    console.log('⚠️ APP_URL is not set yet. Webhook will be configured after deploy.');
+    console.log('⚠️ APP_URL is not set. Webhook not configured.');
   }
 });
 
-// ✋ هندل خاموش شدن تمیز
+// ✅ خاموش شدن تمیز
 process.once('SIGINT', () => bot.stop('SIGINT'));
 process.once('SIGTERM', () => bot.stop('SIGTERM'));
