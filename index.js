@@ -170,7 +170,7 @@ function sendNextQuestion(ctx) {
   ctx.reply(
     `سؤال ${displayNumber} از ${TOTAL_QUESTIONS}:
 
-
+${text}
 
 از ۰ تا ۱۰ امتیاز بده.`
   );
