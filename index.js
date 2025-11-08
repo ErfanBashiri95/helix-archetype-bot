@@ -1,6 +1,7 @@
 // =========================
 // Helix Archetype Bot - NIL Edition (Buttons, 1-5 Scale)
 // =========================
+const fetch=require("node-fetch");
 
 require("dotenv").config();
 const express = require("express");
@@ -306,7 +307,45 @@ function sendResults(ctx, state) {
   "آگاهی ازش می‌تونه کمکت کنه مسیر رشدت رو آگاهانه‌تر انتخاب کنی. 🌱";
 
 
-  return ctx.reply(msg, { parse_mode: "HTML" });
+  // ساخت نمودار تصویری با QuickChart
+const chartUrl = `https://quickchart.io/chart?c=${encodeURIComponent(JSON.stringify({
+  type: "radar",
+  data: {
+    labels: archetypes.map(a => a.label),
+    datasets: [{
+      label: "Archetype Profile",
+      data: archetypes.map(a => Math.round((state.scores[a.key] / MAX_SCORE_PER_ARCHETYPE) * 100)),
+      borderColor: "rgba(90, 130, 255, 0.9)",
+      backgroundColor: "rgba(90, 130, 255, 0.3)",
+      pointBackgroundColor: "rgba(255, 255, 255, 0.9)",
+      borderWidth: 2
+    }]
+  },
+  options: {
+    scales: {
+      r: {
+        angleLines: { color: "rgba(255,255,255,0.1)" },
+        grid: { color: "rgba(255,255,255,0.2)" },
+        pointLabels: { color: "rgba(220,220,255,0.9)", font: { size: 12 } },
+        ticks: { color: "#bbb" }
+      }
+    },
+    plugins: { legend: { display: false } },
+    backgroundColor: "#0b0d2a"
+  }
+}))}`;
+
+// نمایش تدریجی (ابتدا متن، بعد عکس)
+ctx.reply(msg, { parse_mode: "HTML" })
+  .then(() => {
+    setTimeout(() => {
+      ctx.replyWithPhoto(chartUrl, {
+        caption: "📊 نمای کلی آرکتایپ‌های تو",
+      });
+    }, 2500); // ۲.۵ ثانیه بعد از نمایش متن
+  });
+return;
+
 }
 
 // -------------------------
