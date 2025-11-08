@@ -21,6 +21,8 @@ if (!BOT_TOKEN) {
 }
 
 const bot = new Telegraf(BOT_TOKEN);
+const LOGO_STICKER_ID = process.env.LOGO_STICKER_ID || 'CAACAgQAAxkBAm44cGkPXdyXciBIHVlkD1ODOPDM83RLAAJEGQACIMOAUJtqsTmhZKL1NgQ';
+
 const app = express();
 
 // -------------------------
@@ -118,7 +120,7 @@ function makeBar(percent) {
 // BOT: START & FLOW
 // -------------------------
 
-bot.start((ctx) => {
+bot.start(async(ctx) => {
   const userId = ctx.from.id;
   const name =
     (ctx.from.first_name || "") +
@@ -135,6 +137,15 @@ bot.start((ctx) => {
     scores,
     finished: false,
   });
+  if(LOGO_STICKER_ID){
+    try{
+      await ctx.replyWithSticker(LOGO_STICKER_ID);
+    }catch(err){
+      console.error("🚨 Failed to send logo sticker:", err);
+    }
+  }
+
+  
 
   const intro =
     "🪐 <b>Helix Archetype Bot</b>\n" +
