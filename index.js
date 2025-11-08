@@ -1,77 +1,93 @@
 // =========================
-// Helix Archetype Bot - Final Professional Version
+// Helix Archetype Bot - NIL Edition (Buttons, 1-5 Scale)
 // =========================
 
-import express from "express";
-import { Telegraf } from "telegraf";
-import dotenv from "dotenv";
-import fs from "fs";
-
-dotenv.config();
+require("dotenv").config();
+const express = require("express");
+const { Telegraf, Markup } = require("telegraf");
+const questions = require("./questions.json");
 
 // -------------------------
-// CONFIGURATION
+// BASIC CONFIG
 // -------------------------
-const bot = new Telegraf(process.env.BOT_TOKEN);
-const app = express();
-const PORT = process.env.PORT || 10000;
+const BOT_TOKEN = process.env.BOT_TOKEN;
+const APP_URL = process.env.APP_URL; // مثل: https://helix-archetype-bot.onrender.com
+const PORT = process.env.PORT || 3000;
 
-// Read questions from JSON file
-const questions = JSON.parse(fs.readFileSync("./questions.json", "utf8"));
-
-// Archetypes list (12 types)
-const archetypes = [
-  "خالق (The Creator)",
-  "جستجوگر (The Explorer)",
-  "یاغی (The Rebel)",
-  "قهرمان (The Hero)",
-  "دلقک (The Jester)",
-  "مراقب (The Caregiver)",
-  "معصوم (The Innocent)",
-  "عاشق (The Lover)",
-  "جادوگر (The Magician)",
-  "حکیم (The Sage)",
-  "حاکم (The Ruler)",
-  "همدم یا انسان معمولی (The Everyman)",
-];
-
-// Archetype descriptions
-const archetypeDescriptions = {
-  "خالق (The Creator)": "✨ خالق نوآور و خیال‌پرداز است. همیشه به دنبال خلق چیزهای تازه است و از تکرار بیزار. خلاقیت برایش راهی برای معنا دادن به زندگی است.",
-  "جستجوگر (The Explorer)": "🧭 جستجوگر عاشق تجربه، کشف و آزادی است. در ناشناخته‌ها احساس زنده بودن می‌کند و از چارچوب‌ها فراری است.",
-  "یاغی (The Rebel)": "⚡ یاغی قانون‌شکن مثبت است! او می‌خواهد نظم‌های ناعادلانه را بشکند و جهان را تغییر دهد، حتی اگر تنها بماند.",
-  "قهرمان (The Hero)": "🛡️ قهرمان با شجاعت به چالش‌ها حمله می‌کند. شکست برایش پایان نیست، فقط مرحله‌ای از رشد است.",
-  "دلقک (The Jester)": "🎭 دلقک شادی‌آفرین است. از خنده برای ایجاد ارتباط، رهایی از سختی‌ها و معنا بخشیدن به لحظه‌ها استفاده می‌کند.",
-  "مراقب (The Caregiver)": "💗 مراقب با قلبی مهربان، مراقب دیگران است. عشق و حمایت را در عمل نشان می‌دهد، نه فقط در حرف.",
-  "معصوم (The Innocent)": "☀️ معصوم باور دارد که دنیا جای زیبایی است. او به پاکی، صداقت و خیر در انسان‌ها ایمان دارد.",
-  "عاشق (The Lover)": "💞 عاشق با احساس و شور زندگی می‌کند. زیبایی، عشق و پیوند برایش مقدس‌اند.",
-  "جادوگر (The Magician)": "🔮 جادوگر باور دارد که تغییر از درون آغاز می‌شود. می‌تواند رویاها را به واقعیت تبدیل کند.",
-  "حکیم (The Sage)": "📚 حکیم عاشق فهمیدن و کشف حقیقت است. دانش برایش قدرت است و خرد هدف نهایی.",
-  "حاکم (The Ruler)": "👑 حاکم رهبر ذاتی است. نظم، کنترل و ساختار را دوست دارد و در مسئولیت آرامش می‌یابد.",
-  "همدم یا انسان معمولی (The Everyman)": "🤝 همدم صادق، فروتن و واقعی است. به تعلق، سادگی و ارتباط انسانی ارزش می‌دهد.",
-};
-
-// -------------------------
-// BOT STATE
-// -------------------------
-const userState = new Map();
-const TOTAL_QUESTIONS = questions.length;
-const QUESTIONS_PER_ARCHETYPE = TOTAL_QUESTIONS / archetypes.length;
-
-// -------------------------
-// UTILITIES
-// -------------------------
-
-// تبدیل اعداد فارسی و عربی به انگلیسی
-function normalizeNumbers(input) {
-  return input
-    .replace(/[۰-۹]/g, (d) => String.fromCharCode(d.charCodeAt(0) - 1728))
-    .replace(/[٠-٩]/g, (d) => String.fromCharCode(d.charCodeAt(0) - 1632));
+if (!BOT_TOKEN) {
+  console.error("❌ BOT_TOKEN is missing.");
+  process.exit(1);
 }
 
-// رندوم کردن ترتیب سوالات
-function shuffle(array) {
-  const arr = [...array];
+const bot = new Telegraf(BOT_TOKEN);
+const app = express();
+
+// -------------------------
+// ARCHETYPES & SETTINGS
+// -------------------------
+
+const archetypes = [
+  { key: "creator", label: "🌈 خالق (The Creator)" },
+  { key: "explorer", label: "🧭 جستجوگر (The Explorer)" },
+  { key: "rebel", label: "⚡ یاغی (The Rebel)" },
+  { key: "hero", label: "🛡️ قهرمان (The Hero)" },
+  { key: "jester", label: "🎭 دلقک (The Jester)" },
+  { key: "caregiver", label: "💗 مراقب (The Caregiver)" },
+  { key: "innocent", label: "☀️ معصوم (The Innocent)" },
+  { key: "lover", label: "💞 عاشق (The Lover)" },
+  { key: "magician", label: "🔮 جادوگر (The Magician)" },
+  { key: "sage", label: "📚 حکیم (The Sage)" },
+  { key: "ruler", label: "👑 حاکم (The Ruler)" },
+  { key: "everyman", label: "🤝 همدم / انسان معمولی (The Everyman)" },
+];
+
+const archetypeDescriptions = {
+  creator:
+    "تو وقتی زنده‌ای که در حال خلق‌کردن، طراحی‌کردن و ساختن چیزی متفاوتی. خلاقیت برایت فقط مهارت نیست، هویت است.",
+  explorer:
+    "روح تو با تجربه، سفر، کشف و آزادی زنده می‌شود. نمی‌توانی مدت طولانی در چارچوب بسته بمانی.",
+  rebel:
+    "در برابر بی‌عدالتی و قوانین بی‌منطق ساکت نمی‌مانی. می‌توانی شروع‌کننده‌ی تغییر و شکستن الگوهای فرسوده باشی.",
+  hero:
+    "بلند می‌شوی، می‌جنگی، می‌بری. از چالش فرار نمی‌کنی و می‌خواهی الگو و الهام‌بخش باشی.",
+  jester:
+    "می‌توانی فضا را سبک کنی، لبخند بیاوری و سختی‌ها را قابل تحمل‌تر کنی. شوخی برایت یک زبان ارتباطی جدی است.",
+  caregiver:
+    "برای دیگران بودن، حمایت، همدلی و مراقبت برایت طبیعی است. امنیت عاطفی می‌سازی.",
+  innocent:
+    "نگاهت شفاف و امیدوارانه است. به خوبی و صداقت باور داری و دلت می‌خواهد دنیا جای سالم‌تری باشد.",
+  lover:
+    "با عشق، رابطه، صمیمیت و زیبایی جان می‌گیری. حضور تو کیفیت احساسی فضا را بالا می‌برد.",
+  magician:
+    "الگوها را می‌بینی، عمق را درک می‌کنی و می‌توانی تغییر واقعی بسازی. تبدیل کردن ایده به تجربه، قلمرو توست.",
+  sage:
+    "دنبال فهمیدن، تحلیل و حقیقتی. دانش و آگاهی برایت جوهر قدرت است.",
+  ruler:
+    "دوست داری مسئولیت بگیری، ساختار بسازی و کیفیت را حفظ کنی. رهبری برایت طبیعی است.",
+  everyman:
+    "خودمانی، واقعی و بی‌ادعا هستی. برایت مهم است که بخشی از یک جمع اصیل و صمیمی باشی.",
+};
+
+const TOTAL_QUESTIONS = questions.length; // باید 120 باشد
+const QUESTIONS_PER_ARCHETYPE = TOTAL_QUESTIONS / archetypes.length; // 10
+const MAX_SCORE_PER_QUESTION = 5;
+const MAX_SCORE_PER_ARCHETYPE = QUESTIONS_PER_ARCHETYPE * MAX_SCORE_PER_QUESTION;
+
+// -------------------------
+// STATE
+// -------------------------
+
+// userId → { order, currentIndex, scores{key}, finished, name }
+const userState = new Map();
+
+// -------------------------
+// HELPERS
+// -------------------------
+
+// ساخت آرایه رندوم 1..N
+function createShuffledQuestions() {
+  const arr = [];
+  for (let i = 1; i <= TOTAL_QUESTIONS; i++) arr.push(i);
   for (let i = arr.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
     [arr[i], arr[j]] = [arr[j], arr[i]];
@@ -79,126 +95,262 @@ function shuffle(array) {
   return arr;
 }
 
+// بر اساس شماره سوال، آرکتایپ مربوطه
+function getArchetypeKeyForQuestion(qNumber) {
+  if (qNumber < 1 || qNumber > TOTAL_QUESTIONS) return null;
+  const index = Math.floor((qNumber - 1) / QUESTIONS_PER_ARCHETYPE); // 0..11
+  const archetype = archetypes[index];
+  return archetype ? archetype.key : null;
+}
+
+// ساخت نمودار متنی ساده (0 تا 10 بلوک)
+function makeBar(percent) {
+  const blocks = Math.round(percent / 10); // 0..10
+  const filled = "▓".repeat(blocks);
+  const empty = "░".repeat(10 - blocks);
+  return filled + empty;
+}
+
 // -------------------------
-// BOT LOGIC
+// BOT: START & FLOW
 // -------------------------
 
 bot.start((ctx) => {
   const userId = ctx.from.id;
+  const name =
+    (ctx.from.first_name || "") +
+    (ctx.from.last_name ? " " + ctx.from.last_name : "");
+
+  // آماده‌سازی وضعیت کاربر
+  const scores = {};
+  archetypes.forEach((a) => (scores[a.key] = 0));
+
   userState.set(userId, {
-    scores: Array(archetypes.length).fill(0),
+    name: name || "دوست عزیز",
+    order: createShuffledQuestions(),
     currentIndex: 0,
-    order: shuffle(Array.from({ length: TOTAL_QUESTIONS }, (_, i) => i + 1)),
+    scores,
     finished: false,
   });
-  ctx.reply(
-    "🪐 به تست آرکتایپ نیل خوش اومدی!\n\nبه هر جمله از ۰ تا ۱۰ امتیاز بده، بر اساس اینکه چقدر اون جمله بهت شباهت داره.\n\nبزن بریم 👇"
-  );
+
+  const intro =
+    "🪐 <b>Helix Archetype Bot</b>\n" +
+    "Nurturing Innovative Leadership\n" +
+    "━━━━━━━━━━━━━━━━━━\n\n" +
+    "به تست آرکتایپ نیل خوش اومدی 🌱\n\n" +
+    "🔢 <b>نحوه امتیازدهی (۱ تا ۵):</b>\n" +
+    "۱️⃣ اصلاً من نیستم\n" +
+    "۲️⃣ یه کم منم\n" +
+    "۳️⃣ تا حدی منم\n" +
+    "۴️⃣ خیلی منم\n" +
+    "۵️⃣ کاملاً خودِ منم\n\n" +
+    "سریع، حسی و بدون وسواس جواب بده. آماده‌ای؟";
+
+  ctx.reply(intro, {
+    parse_mode: "HTML",
+    ...Markup.inlineKeyboard([
+      [Markup.button.callback("🚀 شروع تست", "start_quiz")],
+    ]),
+  });
+});
+
+// شروع تست بعد از زدن دکمه
+bot.action("start_quiz", (ctx) => {
+  const userId = ctx.from.id;
+  const state = userState.get(userId);
+
+  if (!state) {
+    // اگر به هر دلیل state نیست، دوباره /start بخواد
+    return ctx.answerCbQuery("برای شروع، /start رو بفرست 🌱", { show_alert: true });
+  }
+
+  if (state.finished) {
+    return ctx.answerCbQuery("تستت قبلاً تموم شده. برای شروع دوباره /start رو بفرست.");
+  }
+
+  ctx.answerCbQuery();
   sendNextQuestion(ctx);
 });
 
-bot.on("text", (ctx) => {
+// هندل انتخاب امتیاز ۱ تا ۵ با دکمه
+bot.action(/^score_([1-5])$/, (ctx) => {
   const userId = ctx.from.id;
   const state = userState.get(userId);
 
   if (!state || state.finished) {
-    return ctx.reply("برای شروع دوباره، دستور /start رو بفرست 🌱");
+    ctx.answerCbQuery("برای شروع یا تکرار، /start رو بفرست 🌱", { show_alert: true });
+    return;
   }
 
-  // نرمال‌سازی ورودی
-  const userInput = normalizeNumbers(ctx.message.text.trim());
-  const score = parseFloat(userInput);
+  const score = parseInt(ctx.match[1], 10);
 
-  if (isNaN(score) || score < 0 || score > 10) {
-    return ctx.reply("لطفاً یک عدد بین صفر تا ده بفرست 🔢");
+  const currentIndex = state.currentIndex;
+  if (currentIndex >= TOTAL_QUESTIONS) {
+    state.finished = true;
+    ctx.answerCbQuery();
+    sendResults(ctx, state);
+    return;
   }
 
-  const currentQuestion = state.order[state.currentIndex];
-  const archetypeIndex = Math.floor((currentQuestion - 1) / QUESTIONS_PER_ARCHETYPE);
-  state.scores[archetypeIndex] += score;
-  state.currentIndex++;
+  const realQuestionNumber = state.order[currentIndex];
+  const archetypeKey = getArchetypeKeyForQuestion(realQuestionNumber);
+
+  if (archetypeKey && state.scores[archetypeKey] !== undefined) {
+    state.scores[archetypeKey] += score;
+  }
+
+  state.currentIndex += 1;
+
+  ctx.answerCbQuery(`امتیاز ${score} ثبت شد ✅`);
 
   if (state.currentIndex >= TOTAL_QUESTIONS) {
     state.finished = true;
     return sendResults(ctx, state);
   }
 
-  sendNextQuestion(ctx);
+  return sendNextQuestion(ctx);
 });
 
+// ارسال سوال بعدی با دکمه‌ها
 function sendNextQuestion(ctx) {
   const userId = ctx.from.id;
   const state = userState.get(userId);
+
+  if (!state) {
+    return ctx.reply("برای شروع تست، /start رو بفرست 🌱");
+  }
+
+  if (state.finished || state.currentIndex >= TOTAL_QUESTIONS) {
+    state.finished = true;
+    return sendResults(ctx, state);
+  }
+
   const displayNumber = state.currentIndex + 1;
   const realQuestionNumber = state.order[state.currentIndex];
   const text = questions[realQuestionNumber - 1];
 
-  ctx.reply(
-    `سؤال ${displayNumber} از ${TOTAL_QUESTIONS}:\n\n${text}\n\nاز ۰ تا ۱۰ امتیاز بده.`,
-    { parse_mode: "HTML" }
-  );
+  if (!text) {
+    return ctx.reply("خطا در بارگذاری سؤال. لطفاً بعداً دوباره تلاش کن 🙏");
+  }
+
+  const message =
+    `📝 سؤال ${displayNumber} از ${TOTAL_QUESTIONS}\n` +
+    "━━━━━━━━━━━━━━━━━━\n\n" +
+    `${text}\n\n` +
+    "یکی از گزینه‌ها رو انتخاب کن 👇";
+
+  ctx.reply(message, {
+    parse_mode: "HTML",
+    ...Markup.inlineKeyboard([
+      [
+        Markup.button.callback("1️⃣", "score_1"),
+        Markup.button.callback("2️⃣", "score_2"),
+        Markup.button.callback("3️⃣", "score_3"),
+        Markup.button.callback("4️⃣", "score_4"),
+        Markup.button.callback("5️⃣", "score_5"),
+      ],
+    ]),
+  });
 }
 
 // -------------------------
-// RESULTS CARD
+// RESULTS
 // -------------------------
+
 function sendResults(ctx, state) {
-  const results = archetypes.map((name, i) => ({
-    name,
-    score: state.scores[i],
-  }));
-
-  const sorted = results.sort((a, b) => b.score - a.score);
-  const top3 = sorted.slice(0, 3);
-  const low3 = sorted.slice(-3).reverse();
-
-  let msg = `
-<b>🌌 پروفایل آرکتایپ نیل (NIL)</b>
-<b>Nurturing Innovative Leadership</b>
-━━━━━━━━━━━━━━━━━━
-
-<b>🏆 سه آرکتایپ غالب تو:</b>
-`;
-
-  top3.forEach((a, i) => {
-    msg += `\n<b>${i + 1}. ${a.name}</b> | امتیاز: ${a.score.toFixed(1)}\n`;
-    msg += `🔹 ${archetypeDescriptions[a.name]}\n`;
+  const results = archetypes.map((a) => {
+    const raw = state.scores[a.key] || 0;
+    const percent = Math.round((raw / MAX_SCORE_PER_ARCHETYPE) * 100);
+    return {
+      key: a.key,
+      label: a.label,
+      raw,
+      percent,
+    };
   });
 
-  msg += `\n━━━━━━━━━━━━━━━━━━
-<b>🌑 سه آرکتایپ کم‌فعال‌تر:</b>
-`;
+  results.sort((a, b) => b.percent - a.percent);
 
-  low3.forEach((a, i) => {
-    msg += `\n<b>${i + 1}. ${a.name}</b> | امتیاز: ${a.score.toFixed(1)}\n`;
-    msg += `▫️ ${archetypeDescriptions[a.name]}\n`;
+  const top3 = results.slice(0, 3);
+  const low3 = results.slice(-3).reverse();
+
+  let msg =
+    `🌌 <b>پروفایل آرکتایپی تو در NIL</b>\n` +
+    "Nurturing Innovative Leadership\n" +
+    "━━━━━━━━━━━━━━━━━━\n\n" +
+    `🏆 <b>سه آرکتایپ غالب تو:</b>\n`;
+
+  top3.forEach((r, i) => {
+    msg += `\n${i + 1}. ${r.label}\n`;
+    msg += `▸ امتیاز: ${r.raw.toFixed(1)} از ${MAX_SCORE_PER_ARCHETYPE}\n`;
+    msg += `▸ درصد: ${r.percent}%\n`;
+    msg += `▸ نمودار: ${makeBar(r.percent)}\n`;
+    msg += `🔹 ${archetypeDescriptions[r.key]}\n`;
   });
 
-  msg += `
-━━━━━━━━━━━━━━━━━━
-<b>💫 نکته پایانی:</b>
-این تست تو را در قالب زبان آرکتایپ‌ها نشان می‌دهد، نه در قالب برچسب ثابت. 
-از ترکیب این الگوها می‌توانی برای خودآگاهی، رهبری مؤثرتر و طراحی مسیر رشدت در NIL استفاده کنی. 🌱
-`;
+  msg += `\n━━━━━━━━━━━━━━━━━━\n`;
+  msg += `🌑 <b>سه آرکتایپ کم‌فعال‌تر:</b>\n`;
 
-  ctx.reply(msg, { parse_mode: "HTML" });
+  low3.forEach((r, i) => {
+    msg += `\n${i + 1}. ${r.label}\n`;
+    msg += `▸ امتیاز: ${r.raw.toFixed(1)} از ${MAX_SCORE_PER_ARCHETYPE}\n`;
+    msg += `▸ درصد: ${r.percent}%\n`;
+    msg += `▸ نمودار: ${makeBar(r.percent)}\n`;
+    msg += `▫️ ${archetypeDescriptions[r.key]}\n`;
+  });
+
+  msg +=
+    `\n━━━━━━━━━━━━━━━━━━\n` +
+    "💬 <b>نکته مهم:</b>\n" +
+    "این نتایج «برچسب قطعی» نیست؛ نقشه‌ایه از الگوهای پررنگ و کم‌رنگ تو در این لحظه.\n" +
+    "می‌تونی ازش برای خودآگاهی، کوچینگ، رهبری و طراحی مسیر رشدت در NIL استفاده کنی. 🌱";
+
+  return ctx.reply(msg, { parse_mode: "HTML" });
 }
 
 // -------------------------
-// SERVER + WEBHOOK
+// SERVER + WEBHOOK + HEALTH
 // -------------------------
-app.get("/", (req, res) => res.send("Helix Archetype Bot is running 🚀"));
-app.use(express.json());
-app.post(`/telegram-webhook`, (req, res) => {
-  bot.handleUpdate(req.body, res);
-  res.status(200).end();
+
+app.get("/", (req, res) => {
+  res.send("Helix Archetype Bot is running 🚀");
 });
 
-app.listen(PORT, () => {
+app.get("/health", (req, res) => {
+  res.status(200).send("OK ✅");
+});
+
+const webhookPath = "/telegram-webhook";
+
+app.use(express.json());
+
+app.post(webhookPath, (req, res) => {
+  bot.handleUpdate(req.body)
+    .then(() => res.sendStatus(200))
+    .catch((err) => {
+      console.error("🚨 Error handling update:", err);
+      res.sendStatus(500);
+    });
+});
+
+app.listen(PORT, async () => {
   console.log(`🚀 Server running on port ${PORT}`);
-  if (process.env.APP_URL) {
-    const webhookUrl = `${process.env.APP_URL}/telegram-webhook`;
-    bot.telegram.setWebhook(webhookUrl);
-    console.log(`✅ Webhook set to: ${webhookUrl}`);
+  if (APP_URL) {
+    const webhookUrl = `${APP_URL}${webhookPath}`;
+    try {
+      await bot.telegram.setWebhook(webhookUrl);
+      console.log(`✅ Webhook set to: ${webhookUrl}`);
+    } catch (err) {
+      console.error(
+        "🚨 Error setting webhook:",
+        err.response?.description || err
+      );
+    }
+  } else {
+    console.log("⚠️ APP_URL is not set. Webhook not configured automatically.");
   }
 });
+
+// Graceful stop (Render, etc.)
+process.once("SIGINT", () => bot.stop("SIGINT"));
+process.once("SIGTERM", () => bot.stop("SIGTERM"));
