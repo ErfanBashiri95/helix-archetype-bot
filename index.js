@@ -113,16 +113,6 @@ function makeBar(percent) {
 }
 
 
-// موقّت — برای گرفتن file_id از استیکر فوروارد شده
-bot.on("sticker", (ctx) => {
-  try {
-    const fileId = ctx.message.sticker.file_id;
-    console.log("🔹 Received sticker file_id:", fileId);
-    ctx.reply("استیکر دریافت شد ✅\nfile_id در لاگ سرور چاپ شد. (حالا می‌تونی اونو برداری)");
-  } catch (err) {
-    console.error("Error reading sticker:", err);
-  }
-});
 
 // -------------------------
 // BOT: START & FLOW
