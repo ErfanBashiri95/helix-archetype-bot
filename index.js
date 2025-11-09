@@ -325,7 +325,7 @@ async function sendResults(ctx, state) {
 
   await ctx.reply(msg, { parse_mode: "HTML" });
 
-  // ---------- نمودار میله‌ای تمیز ----------
+  // ---------- نمودار میله‌ای ----------
 
   const topKeys = new Set(top3.map((r) => r.key));
   const lowKeys = new Set(low3.map((r) => r.key));
@@ -334,9 +334,9 @@ async function sendResults(ctx, state) {
   const data = results.map((r) => r.percent);
 
   const backgroundColors = results.map((r) => {
-    if (topKeys.has(r.key)) return "rgba(46, 204, 113, 0.9)"; // سبز برای غالب‌ها
-    if (lowKeys.has(r.key)) return "rgba(231, 76, 60, 0.9)"; // قرمز برای کم‌فعال‌ترها
-    return "rgba(149, 165, 166, 0.85)"; // خاکستری برای بقیه
+    if (topKeys.has(r.key)) return "rgba(46, 204, 113, 0.9)"; // سبز - سه غالب
+    if (lowKeys.has(r.key)) return "rgba(231, 76, 60, 0.9)"; // قرمز - سه کم‌فعال‌تر
+    return "rgba(149, 165, 166, 0.85)"; // خاکستری - بقیه
   });
 
   const chartConfig = {
@@ -363,29 +363,43 @@ async function sendResults(ctx, state) {
           min: 0,
           max: 100,
           ticks: {
-            color: "#e0e0e0",
-            font: { size: 10, family: "Vazir, sans-serif" },
+            color: "#666666",
+            font: { size: 10 },
           },
-          grid: { color: "rgba(255,255,255,0.15)" },
+          grid: { color: "rgba(0,0,0,0.08)" },
         },
         y: {
           ticks: {
-            color: "#e0e0e0",
-            font: { size: 9, family: "Vazir, sans-serif" },
+            color: "#666666",
+            font: { size: 9 },
           },
         },
       },
+      // برای Chart.js v2
+      legend: {
+        display: false,
+      },
+      // برای Chart.js v3
       plugins: {
-        legend: {
-          display: false, // نوار سبز/legend کامل حذف
-        },
-        title: {
-          display: false, // اگر نخواای چیزی بالا باشه
-        },
+        legend: { display: false }, // نوار سبز بالایی کامل غیرفعال
+        title: { display: false },
+        // واترمارک لوگو در پایین راست (اگر NIL_LOGO_URL تنظیم شده باشد)
+        ...(NIL_LOGO_URL
+          ? {
+              watermark: {
+                image: NIL_LOGO_URL,
+                alignX: "right",
+                alignY: "bottom",
+                width: 80,
+                height: 40,
+                opacity: 1,
+              },
+            }
+          : {}),
       },
     },
-    // رنگ پس‌زمینه کل تصویر
-    backgroundColor: "#070c2e", // آبی خیلی تیره متمایل به بنفش
+    // فعال کردن پلاگین واترمارک در QuickChart (در صورت وجود لوگو)
+    ...(NIL_LOGO_URL ? { plugins: ["watermark"] } : {}),
   };
 
   const chartUrl =
