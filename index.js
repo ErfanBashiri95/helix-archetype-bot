@@ -408,15 +408,17 @@ async function sendResults(ctx, state) {
 
       c.drawImage(chartImage, 0, 0);
 
-      const logoWidth = Math.floor(chartImage.width * 0.18);
-      const aspect = logoImage.width / logoImage.height;
-      const logoHeight = Math.floor(logoWidth / aspect);
-      const margin = Math.floor(chartImage.width * 0.03);
+      const logoWidth = Math.floor(chartImage.width * 0.12); // کمی بزرگ‌تر
+const aspect = logoImage.width / logoImage.height;
+const logoHeight = Math.floor(logoWidth / aspect);
+const marginX = Math.floor(chartImage.width * 0.01); // نزدیک‌تر به گوشه راست
+const marginY = Math.floor(chartImage.height * 0.005); // پایین‌تر
 
-      const x = chartImage.width - logoWidth - margin;
-      const y = chartImage.height - logoHeight - margin;
+const x = chartImage.width - logoWidth - marginX;
+const y = chartImage.height - logoHeight + marginY;
 
-      c.drawImage(logoImage, x, y, logoWidth, logoHeight);
+c.drawImage(logoImage, x, y, logoWidth, logoHeight);
+
 
       finalBuffer = canvas.toBuffer();
     }
