@@ -1,7 +1,7 @@
 // =========================
 // Helix Archetype Bot - NIL Edition (Buttons, 1-5 Scale)
 // =========================
-const fetch=require("node-fetch");
+const fetch = require("node-fetch");
 
 require("dotenv").config();
 const express = require("express");
@@ -14,6 +14,7 @@ const questions = require("./questions.json");
 const BOT_TOKEN = process.env.BOT_TOKEN;
 const APP_URL = process.env.APP_URL; // مثل: https://helix-archetype-bot.onrender.com
 const PORT = process.env.PORT || 3000;
+const NIL_LOGO_URL = process.env.NIL_LOGO_URL || "";
 
 if (!BOT_TOKEN) {
   console.error("❌ BOT_TOKEN is missing.");
@@ -21,7 +22,9 @@ if (!BOT_TOKEN) {
 }
 
 const bot = new Telegraf(BOT_TOKEN);
-const LOGO_STICKER_ID = process.env.LOGO_STICKER_ID || 'CAACAgQAAxkBAm44cGkPXdyXciBIHVlkD1ODOPDM83RLAAJEGQACIMOAUJtqsTmhZKL1NgQ';
+const LOGO_STICKER_ID =
+  process.env.LOGO_STICKER_ID ||
+  "CAACAgQAAxkBAm44cGkPXdyXciBIHVlkD1ODOPDM83RLAAJEGQACIMOAUJtqsTmhZKL1NgQ";
 
 const app = express();
 
@@ -71,8 +74,8 @@ const archetypeDescriptions = {
     "خودمانی، واقعی و بی‌ادعا هستی. برایت مهم است که بخشی از یک جمع اصیل و صمیمی باشی.",
 };
 
-const TOTAL_QUESTIONS = questions.length; // باید 120 باشد
-const QUESTIONS_PER_ARCHETYPE = TOTAL_QUESTIONS / archetypes.length; // 10
+const TOTAL_QUESTIONS = questions.length; // الان 60
+const QUESTIONS_PER_ARCHETYPE = TOTAL_QUESTIONS / archetypes.length; // 5
 const MAX_SCORE_PER_QUESTION = 5;
 const MAX_SCORE_PER_ARCHETYPE = QUESTIONS_PER_ARCHETYPE * MAX_SCORE_PER_QUESTION;
 
@@ -114,13 +117,11 @@ function makeBar(percent) {
   return filled + empty;
 }
 
-
-
 // -------------------------
 // BOT: START & FLOW
 // -------------------------
 
-bot.start(async(ctx) => {
+bot.start(async (ctx) => {
   const userId = ctx.from.id;
   const name =
     (ctx.from.first_name || "") +
@@ -137,15 +138,14 @@ bot.start(async(ctx) => {
     scores,
     finished: false,
   });
-  if(LOGO_STICKER_ID){
-    try{
+
+  if (LOGO_STICKER_ID) {
+    try {
       await ctx.replyWithSticker(LOGO_STICKER_ID);
-    }catch(err){
+    } catch (err) {
       console.error("🚨 Failed to send logo sticker:", err);
     }
   }
-
-  
 
   const intro =
     "🪐 <b>Helix Archetype Bot</b>\n" +
@@ -174,12 +174,15 @@ bot.action("start_quiz", (ctx) => {
   const state = userState.get(userId);
 
   if (!state) {
-    // اگر به هر دلیل state نیست، دوباره /start بخواد
-    return ctx.answerCbQuery("برای شروع، /start رو بفرست 🌱", { show_alert: true });
+    return ctx.answerCbQuery("برای شروع، /start رو بفرست 🌱", {
+      show_alert: true,
+    });
   }
 
   if (state.finished) {
-    return ctx.answerCbQuery("تستت قبلاً تموم شده. برای شروع دوباره /start رو بفرست.");
+    return ctx.answerCbQuery(
+      "تستت قبلاً تموم شده. برای شروع دوباره /start رو بفرست."
+    );
   }
 
   ctx.answerCbQuery();
@@ -192,7 +195,9 @@ bot.action(/^score_([1-5])$/, (ctx) => {
   const state = userState.get(userId);
 
   if (!state || state.finished) {
-    ctx.answerCbQuery("برای شروع یا تکرار، /start رو بفرست 🌱", { show_alert: true });
+    ctx.answerCbQuery("برای شروع یا تکرار، /start رو بفرست 🌱", {
+      show_alert: true,
+    });
     return;
   }
 
@@ -268,10 +273,10 @@ function sendNextQuestion(ctx) {
 }
 
 // -------------------------
-// RESULTS
+// RESULTS (با نمودار میله‌ای + لوگو)
 // -------------------------
 
-function sendResults(ctx, state) {
+async function sendResults(ctx, state) {
   const results = archetypes.map((a) => {
     const raw = state.scores[a.key] || 0;
     const percent = Math.round((raw / MAX_SCORE_PER_ARCHETYPE) * 100);
@@ -283,6 +288,7 @@ function sendResults(ctx, state) {
     };
   });
 
+  // مرتب‌سازی بر اساس درصد
   results.sort((a, b) => b.percent - a.percent);
 
   const top3 = results.slice(0, 3);
@@ -303,65 +309,118 @@ function sendResults(ctx, state) {
   });
 
   msg += `\n━━━━━━━━━━━━━━━━━━\n`;
-msg += `🌑 <b>سه آرکتایپ کم‌فعال‌تر:</b>\n`;
+  msg += `🌑 <b>سه آرکتایپ کم‌فعال‌تر:</b>\n`;
+  msg +=
+    `🔹 این سه آرکتایپ نسبت به بقیه الان در رفتار و انتخاب‌هات کم‌فعال‌ترند. اگر بخوای، می‌تونی آگاهانه موقعیت‌هایی بسازی که این بخش‌ها هم فرصت بروز و رشد پیدا کنن.\n`;
 
-low3.forEach((r, i) => {
-  msg += `\n${i + 1}. ${r.label}\n`;
-  msg += `▸ امتیاز: ${r.raw.toFixed(1)} از ${MAX_SCORE_PER_ARCHETYPE}\n`;
-  msg += `▸ درصد: ${r.percent}%\n`;
-  msg += `▸ نمودار: ${makeBar(r.percent)}\n`;
-  msg += `▫️ ${archetypeDescriptions[r.key]}\n`;
-});
-
-// 👇 این جمله فقط یک‌بار بعد از سه آرکتایپ کم‌فعال‌تر میاد
-msg += `\n🔹 این آرکتایپ‌ها در تو کم‌فعال‌ترند؛ یعنی در رفتار و تصمیم‌هات کمتر خودشون رو نشون می‌دن. اگر بخوای، می‌تونی آگاهانه فضاهایی بسازی تا این بخش از شخصیتت فرصت بروز و رشد بیشتری پیدا کنه.\n`;
-
+  low3.forEach((r, i) => {
+    msg += `\n${i + 1}. ${r.label}\n`;
+    msg += `▸ امتیاز: ${r.raw.toFixed(1)} از ${MAX_SCORE_PER_ARCHETYPE}\n`;
+    msg += `▸ درصد: ${r.percent}%\n`;
+    msg += `▸ نمودار: ${makeBar(r.percent)}\n`;
+    msg += `▫️ ${archetypeDescriptions[r.key]}\n`;
+  });
 
   msg +=
-  "\n━━━━━━━━━━━━━━━━━━\n" +
-  "این نتیجه، برچسب یا قضاوت نیست — فقط تصویریه از الگوهای فعالی که الان در تو بیشتر یا کمتر دیده می‌شن. " +
-  "آگاهی ازش می‌تونه کمکت کنه مسیر رشدت رو آگاهانه‌تر انتخاب کنی. 🌱";
+    "\n━━━━━━━━━━━━━━━━━━\n" +
+    "این نتیجه، برچسب یا قضاوت نیست — فقط تصویریه از الگوهای فعالی که الان در تو بیشتر یا کمتر دیده می‌شن. " +
+    "آگاهی ازش می‌تونه کمکت کنه مسیر رشدت رو آگاهانه‌تر انتخاب کنی. 🌱";
 
+  // اول متن رو بفرست
+  await ctx.reply(msg, { parse_mode: "HTML" });
 
-  // ساخت نمودار تصویری با QuickChart
-const chartUrl = `https://quickchart.io/chart?c=${encodeURIComponent(JSON.stringify({
-  type: "radar",
-  data: {
-    labels: archetypes.map(a => a.label),
-    datasets: [{
-      label: "Archetype Profile",
-      data: archetypes.map(a => Math.round((state.scores[a.key] / MAX_SCORE_PER_ARCHETYPE) * 100)),
-      borderColor: "rgba(90, 130, 255, 0.9)",
-      backgroundColor: "rgba(90, 130, 255, 0.3)",
-      pointBackgroundColor: "rgba(255, 255, 255, 0.9)",
-      borderWidth: 2
-    }]
-  },
-  options: {
-    scales: {
-      r: {
-        angleLines: { color: "rgba(255,255,255,0.1)" },
-        grid: { color: "rgba(255,255,255,0.2)" },
-        pointLabels: { color: "rgba(220,220,255,0.9)", font: { size: 12 } },
-        ticks: { color: "#bbb" }
-      }
-    },
-    plugins: { legend: { display: false } },
-    backgroundColor: "#0b0d2a"
-  }
-}))}`;
+  // ---------- نمودار میله‌ای افقی ----------
 
-// نمایش تدریجی (ابتدا متن، بعد عکس)
-ctx.reply(msg, { parse_mode: "HTML" })
-  .then(() => {
-    setTimeout(() => {
-      ctx.replyWithPhoto(chartUrl, {
-        caption: "📊 نمای کلی آرکتایپ‌های تو",
-      });
-    }, 2500); // ۲.۵ ثانیه بعد از نمایش متن
+  const topKeys = new Set(top3.map((r) => r.key));
+  const lowKeys = new Set(low3.map((r) => r.key));
+
+  const labels = results.map((r) => r.label);
+  const data = results.map((r) => r.percent);
+
+  const backgroundColors = results.map((r) => {
+    if (topKeys.has(r.key)) return "rgba(46, 204, 113, 0.9)"; // سبز: سه غالب
+    if (lowKeys.has(r.key)) return "rgba(231, 76, 60, 0.9)"; // قرمز: سه کم‌فعال‌تر
+    return "rgba(149, 165, 166, 0.85)"; // خاکستری: بقیه
   });
-return;
 
+  const chartConfig = {
+    type: "bar",
+    data: {
+      labels,
+      datasets: [
+        {
+          data,
+          backgroundColor: backgroundColors,
+          borderWidth: 0,
+        },
+      ],
+    },
+    options: {
+      indexAxis: "y",
+      responsive: true,
+      layout: {
+        padding: { left: 10, right: 10, top: 10, bottom: 10 },
+      },
+      scales: {
+        x: {
+          suggestedMin: 0,
+          suggestedMax: 100,
+          ticks: {
+            color: "#e0e0e0",
+            font: { size: 10 },
+          },
+          grid: {
+            color: "rgba(255,255,255,0.06)",
+          },
+        },
+        y: {
+          ticks: {
+            color: "#e0e0e0",
+            font: { size: 9 },
+          },
+        },
+      },
+      plugins: {
+        legend: { display: false },
+        title: {
+          display: true,
+          text: "Helix Archetype Profile",
+          color: "#ffffff",
+          font: { size: 14 },
+        },
+      },
+      backgroundColor: "#020817",
+    },
+  };
+
+  // اگر لینک لوگو داریم، پلاگین لوگو اضافه می‌شود
+  if (NIL_LOGO_URL) {
+    chartConfig.plugins = [
+      {
+        id: "nilLogo",
+        afterDraw: (chart) => {
+          const { ctx, chartArea } = chart;
+          const image = new Image();
+          image.src = NIL_LOGO_URL;
+
+          const logoWidth = 70;
+          const logoHeight = 30;
+          const x = chartArea.right - logoWidth - 6;
+          const y = chartArea.bottom - logoHeight - 6;
+
+          ctx.drawImage(image, x, y, logoWidth, logoHeight);
+        },
+      },
+    ];
+  }
+
+  const chartUrl =
+    "https://quickchart.io/chart?c=" +
+    encodeURIComponent(JSON.stringify(chartConfig));
+
+  await ctx.replyWithPhoto(chartUrl, {
+    caption: "📊 نمای میله‌ای آرکتایپ‌ها — سبز: فعال‌تر، قرمز: کم‌فعال‌تر",
+  });
 }
 
 // -------------------------
@@ -381,7 +440,8 @@ const webhookPath = "/telegram-webhook";
 app.use(express.json());
 
 app.post(webhookPath, (req, res) => {
-  bot.handleUpdate(req.body)
+  bot
+    .handleUpdate(req.body)
     .then(() => res.sendStatus(200))
     .catch((err) => {
       console.error("🚨 Error handling update:", err);
