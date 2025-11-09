@@ -283,6 +283,7 @@ async function sendResults(ctx, state) {
     return { key: a.key, label: a.label, raw, percent };
   });
 
+  // مرتب‌سازی بر اساس درصد
   results.sort((a, b) => b.percent - a.percent);
 
   const top3 = results.slice(0, 3);
@@ -306,7 +307,8 @@ async function sendResults(ctx, state) {
 
   msg += `\n━━━━━━━━━━━━━━━━━━\n`;
   msg += `🌑 <b>سه آرکتایپ کم‌فعال‌تر:</b>\n`;
-  msg += `🔹 این سه آرکتایپ نسبت به بقیه الان در رفتار و انتخاب‌هات کم‌فعال‌ترند. اگر بخوای، می‌تونی آگاهانه موقعیت‌هایی بسازی که این بخش‌ها هم فرصت بروز و رشد پیدا کنن.\n`;
+  msg +=
+    `🔹 این سه آرکتایپ نسبت به بقیه الان در رفتار و انتخاب‌هات کم‌فعال‌ترند. اگر بخوای، می‌تونی آگاهانه موقعیت‌هایی بسازی که این بخش‌ها هم فرصت بروز و رشد پیدا کنن.\n`;
 
   low3.forEach((r, i) => {
     msg += `\n${i + 1}. ${r.label}\n`;
@@ -323,7 +325,7 @@ async function sendResults(ctx, state) {
 
   await ctx.reply(msg, { parse_mode: "HTML" });
 
-  // ---------- نمودار میله‌ای با گرادینت و بدون legend ----------
+  // ---------- نمودار میله‌ای (بدون legend، پس‌زمینه تیره، ۱۲ میله کامل) ----------
 
   const topKeys = new Set(top3.map((r) => r.key));
   const lowKeys = new Set(low3.map((r) => r.key));
@@ -332,9 +334,9 @@ async function sendResults(ctx, state) {
   const data = results.map((r) => r.percent);
 
   const backgroundColors = results.map((r) => {
-    if (topKeys.has(r.key)) return "rgba(46, 204, 113, 0.9)"; // سبز
-    if (lowKeys.has(r.key)) return "rgba(231, 76, 60, 0.9)"; // قرمز
-    return "rgba(149, 165, 166, 0.85)"; // خاکستری
+    if (topKeys.has(r.key)) return "rgba(46, 204, 113, 0.9)"; // سبز برای ۳ غالب
+    if (lowKeys.has(r.key)) return "rgba(231, 76, 60, 0.9)"; // قرمز برای ۳ کم‌فعال‌تر
+    return "rgba(149, 165, 166, 0.85)"; // خاکستری بقیه
   });
 
   const chartConfig = {
@@ -343,10 +345,11 @@ async function sendResults(ctx, state) {
       labels,
       datasets: [
         {
-          label: null, // تا legend چیزی نداشته باشه
+          // بدون label تا legend چیزی نداشته باشه
+          label: "",
           data,
           backgroundColor: backgroundColors,
-          borderWidth: 0,
+          borderWidth: 0
         },
       ],
     },
@@ -358,13 +361,15 @@ async function sendResults(ctx, state) {
       },
       scales: {
         x: {
-          suggestedMin: 0,
-          suggestedMax: 100,
+          min: 0, // از ۰ شروع کن
+          max: 100, // تا ۱۰۰
           ticks: {
             color: "#e0e0e0",
             font: { size: 10, family: "Vazir, sans-serif" },
           },
-          grid: { color: "rgba(255,255,255,0.08)" },
+          grid: {
+            color: "rgba(255,255,255,0.08)",
+          },
         },
         y: {
           ticks: {
@@ -374,7 +379,7 @@ async function sendResults(ctx, state) {
         },
       },
       plugins: {
-        legend: { display: false }, // legend کاملاً off
+        legend: { display: false }, // legend کامل غیر فعال
         title: {
           display: true,
           text: "Helix Archetype Profile",
@@ -383,45 +388,9 @@ async function sendResults(ctx, state) {
         },
       },
     },
+    // پس‌زمینه‌ی کل نمودار (نزدیک به آبی-بنفش تیره)
+    backgroundColor: "#070c2e"
   };
-
-  // پلاگین گرادینت تمام‌صفحه
-  const plugins = [
-    {
-      id: "bgGradient",
-      beforeDraw: (chart) => {
-        const { ctx, width, height } = chart;
-        const gradient = ctx.createLinearGradient(0, 0, width, height);
-        gradient.addColorStop(0, "#060b2e"); // آبی تیره
-        gradient.addColorStop(1, "#3b1c5a"); // بنفش تیره
-        ctx.save();
-        ctx.fillStyle = gradient;
-        ctx.fillRect(0, 0, width, height);
-        ctx.restore();
-      },
-    },
-  ];
-
-  // پلاگین لوگو در گوشه پایین راست
-  if (NIL_LOGO_URL) {
-    plugins.push({
-      id: "nilLogo",
-      afterDraw: (chart) => {
-        const { ctx, width, height } = chart;
-        const image = new Image();
-        image.src = NIL_LOGO_URL;
-        const logoWidth = 70;
-        const logoHeight = 30;
-        const x = width - logoWidth - 8;
-        const y = height - logoHeight - 8;
-        ctx.drawImage(image, x, y, logoWidth, logoHeight);
-      },
-    });
-  }
-
-  if (plugins.length) {
-    chartConfig.plugins = plugins;
-  }
 
   const chartUrl =
     "https://quickchart.io/chart?c=" +
