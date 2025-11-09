@@ -17,6 +17,7 @@ const APP_URL = process.env.APP_URL; // مثل: https://helix-archetype-bot.onre
 const PORT = process.env.PORT || 3000;
 const NIL_LOGO_URL = process.env.NIL_LOGO_URL || "";
 
+console.log("NIL_LOGO_URL at runtime:",NIL_LOGO_URL)
 if (!BOT_TOKEN) {
   console.error("❌ BOT_TOKEN is missing.");
   process.exit(1);
