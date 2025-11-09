@@ -294,6 +294,8 @@ async function sendResults(ctx, state) {
   const top3 = results.slice(0, 3);
   const low3 = results.slice(-3).reverse();
 
+  // ---------- متن نتیجه ----------
+
   let msg =
     `🌌 <b>پروفایل آرکتایپی تو در NIL</b>\n` +
     "Nurturing Innovative Leadership\n" +
@@ -329,7 +331,7 @@ async function sendResults(ctx, state) {
   // اول متن رو بفرست
   await ctx.reply(msg, { parse_mode: "HTML" });
 
-  // ---------- نمودار میله‌ای افقی ----------
+  // ---------- نمودار میله‌ای افقی با گرادینت و لوگو ----------
 
   const topKeys = new Set(top3.map((r) => r.key));
   const lowKeys = new Set(low3.map((r) => r.key));
@@ -349,6 +351,7 @@ async function sendResults(ctx, state) {
       labels,
       datasets: [
         {
+          label: "", // جلوگیری از نمایش 'undefined'
           data,
           backgroundColor: backgroundColors,
           borderWidth: 0,
@@ -381,7 +384,7 @@ async function sendResults(ctx, state) {
         },
       },
       plugins: {
-        legend: { display: false },
+        legend: { display: false }, // مطمئنن هیچ legend دیده نشه
         title: {
           display: true,
           text: "Helix Archetype Profile",
@@ -389,29 +392,60 @@ async function sendResults(ctx, state) {
           font: { size: 14 },
         },
       },
-      backgroundColor: "#020817",
     },
   };
 
-  // اگر لینک لوگو داریم، پلاگین لوگو اضافه می‌شود
-  if (NIL_LOGO_URL) {
-    chartConfig.plugins = [
-      {
-        id: "nilLogo",
-        afterDraw: (chart) => {
-          const { ctx, chartArea } = chart;
-          const image = new Image();
-          image.src = NIL_LOGO_URL;
+  // پلاگین‌ها: گرادینت پس‌زمینه + لوگو NIL (اگر تنظیم شده)
+  const plugins = [
+    {
+      id: "bgGradient",
+      beforeDraw: (chart) => {
+        const { ctx, chartArea } = chart;
+        if (!chartArea) return;
 
-          const logoWidth = 70;
-          const logoHeight = 30;
-          const x = chartArea.right - logoWidth - 6;
-          const y = chartArea.bottom - logoHeight - 6;
+        const gradient = ctx.createLinearGradient(
+          chartArea.left,
+          chartArea.top,
+          chartArea.right,
+          chartArea.bottom
+        );
+        gradient.addColorStop(0, "#060b2e"); // آبی تیره
+        gradient.addColorStop(1, "#3b1c5a"); // بنفش تیره
 
-          ctx.drawImage(image, x, y, logoWidth, logoHeight);
-        },
+        ctx.save();
+        ctx.fillStyle = gradient;
+        ctx.fillRect(
+          chartArea.left,
+          chartArea.top,
+          chartArea.right - chartArea.left,
+          chartArea.bottom - chartArea.top
+        );
+        ctx.restore();
       },
-    ];
+    },
+  ];
+
+  if (NIL_LOGO_URL) {
+    plugins.push({
+      id: "nilLogo",
+      afterDraw: (chart) => {
+        const { ctx, chartArea } = chart;
+        if (!chartArea) return;
+        const image = new Image();
+        image.src = NIL_LOGO_URL;
+
+        const logoWidth = 70;
+        const logoHeight = 30;
+        const x = chartArea.right - logoWidth - 8;
+        const y = chartArea.bottom - logoHeight - 8;
+
+        ctx.drawImage(image, x, y, logoWidth, logoHeight);
+      },
+    });
+  }
+
+  if (plugins.length) {
+    chartConfig.plugins = plugins;
   }
 
   const chartUrl =
@@ -422,6 +456,7 @@ async function sendResults(ctx, state) {
     caption: "📊 نمای میله‌ای آرکتایپ‌ها — سبز: فعال‌تر، قرمز: کم‌فعال‌تر",
   });
 }
+
 
 // -------------------------
 // SERVER + WEBHOOK + HEALTH
