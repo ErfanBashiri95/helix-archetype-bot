@@ -74,7 +74,7 @@ const archetypeDescriptions = {
     "خودمانی، واقعی و بی‌ادعا هستی. برایت مهم است که بخشی از یک جمع اصیل و صمیمی باشی.",
 };
 
-const TOTAL_QUESTIONS = questions.length; // الان 60
+const TOTAL_QUESTIONS = questions.length; // الان باید 60 باشد
 const QUESTIONS_PER_ARCHETYPE = TOTAL_QUESTIONS / archetypes.length; // 5
 const MAX_SCORE_PER_QUESTION = 5;
 const MAX_SCORE_PER_ARCHETYPE = QUESTIONS_PER_ARCHETYPE * MAX_SCORE_PER_QUESTION;
@@ -273,7 +273,7 @@ function sendNextQuestion(ctx) {
 }
 
 // -------------------------
-// RESULTS (با نمودار میله‌ای + لوگو)
+// RESULTS (با نمودار میله‌ای + تلاش برای لوگو داخل تصویر)
 // -------------------------
 
 async function sendResults(ctx, state) {
@@ -345,7 +345,7 @@ async function sendResults(ctx, state) {
       labels,
       datasets: [
         {
-          label: "", // legend خالی → نوار بالایی حذف
+          label: "",
           data,
           backgroundColor: backgroundColors,
           borderWidth: 0,
@@ -392,28 +392,28 @@ async function sendResults(ctx, state) {
           },
         ],
       },
-      plugins: {
-        // واترمارک لوگو در پایین راست (اگر NIL_LOGO_URL تنظیم شده باشد)
-        ...(NIL_LOGO_URL
-          ? {
-              watermark: {
-                image: NIL_LOGO_URL,
-                alignX: "right",
-                alignY: "bottom",
-                opacity: 1,
-                width: 80,
-                height: 32,
-              },
-            }
-          : {}),
-      },
     },
-    ...(NIL_LOGO_URL ? { plugins: ["watermark"] } : {}),
+    ...(NIL_LOGO_URL
+      ? {
+          plugins: {
+            watermark: {
+              image: NIL_LOGO_URL,
+              alignX: "right",
+              alignY: "bottom",
+              opacity: 1,
+              width: 80,
+              height: 32,
+            },
+          },
+        }
+      : {}),
   };
 
   const chartUrl =
-    "https://quickchart.io/chart?plugins=watermark&c=" +
-    encodeURIComponent(JSON.stringify(chartConfig));
+    "https://quickchart.io/chart?" +
+    "c=" +
+    encodeURIComponent(JSON.stringify(chartConfig)) +
+    (NIL_LOGO_URL ? "&plugins=watermark" : "");
 
   await ctx.replyWithPhoto(chartUrl, {
     caption: "📊 نمای میله‌ای آرکتایپ‌ها — سبز: فعال‌تر، قرمز: کم‌فعال‌تر",
