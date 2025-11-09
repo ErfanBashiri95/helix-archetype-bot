@@ -280,21 +280,15 @@ async function sendResults(ctx, state) {
   const results = archetypes.map((a) => {
     const raw = state.scores[a.key] || 0;
     const percent = Math.round((raw / MAX_SCORE_PER_ARCHETYPE) * 100);
-    return {
-      key: a.key,
-      label: a.label,
-      raw,
-      percent,
-    };
+    return { key: a.key, label: a.label, raw, percent };
   });
 
-  // مرتب‌سازی بر اساس درصد
   results.sort((a, b) => b.percent - a.percent);
 
   const top3 = results.slice(0, 3);
   const low3 = results.slice(-3).reverse();
 
-  // ---------- متن نتیجه ----------
+  // ---------- متن ----------
 
   let msg =
     `🌌 <b>پروفایل آرکتایپی تو در NIL</b>\n` +
@@ -312,8 +306,7 @@ async function sendResults(ctx, state) {
 
   msg += `\n━━━━━━━━━━━━━━━━━━\n`;
   msg += `🌑 <b>سه آرکتایپ کم‌فعال‌تر:</b>\n`;
-  msg +=
-    `🔹 این سه آرکتایپ نسبت به بقیه الان در رفتار و انتخاب‌هات کم‌فعال‌ترند. اگر بخوای، می‌تونی آگاهانه موقعیت‌هایی بسازی که این بخش‌ها هم فرصت بروز و رشد پیدا کنن.\n`;
+  msg += `🔹 این سه آرکتایپ نسبت به بقیه الان در رفتار و انتخاب‌هات کم‌فعال‌ترند. اگر بخوای، می‌تونی آگاهانه موقعیت‌هایی بسازی که این بخش‌ها هم فرصت بروز و رشد پیدا کنن.\n`;
 
   low3.forEach((r, i) => {
     msg += `\n${i + 1}. ${r.label}\n`;
@@ -328,10 +321,9 @@ async function sendResults(ctx, state) {
     "این نتیجه، برچسب یا قضاوت نیست — فقط تصویریه از الگوهای فعالی که الان در تو بیشتر یا کمتر دیده می‌شن. " +
     "آگاهی ازش می‌تونه کمکت کنه مسیر رشدت رو آگاهانه‌تر انتخاب کنی. 🌱";
 
-  // اول متن رو بفرست
   await ctx.reply(msg, { parse_mode: "HTML" });
 
-  // ---------- نمودار میله‌ای افقی با گرادینت و لوگو ----------
+  // ---------- نمودار میله‌ای با گرادینت و بدون legend ----------
 
   const topKeys = new Set(top3.map((r) => r.key));
   const lowKeys = new Set(low3.map((r) => r.key));
@@ -340,9 +332,9 @@ async function sendResults(ctx, state) {
   const data = results.map((r) => r.percent);
 
   const backgroundColors = results.map((r) => {
-    if (topKeys.has(r.key)) return "rgba(46, 204, 113, 0.9)"; // سبز: سه غالب
-    if (lowKeys.has(r.key)) return "rgba(231, 76, 60, 0.9)"; // قرمز: سه کم‌فعال‌تر
-    return "rgba(149, 165, 166, 0.85)"; // خاکستری: بقیه
+    if (topKeys.has(r.key)) return "rgba(46, 204, 113, 0.9)"; // سبز
+    if (lowKeys.has(r.key)) return "rgba(231, 76, 60, 0.9)"; // قرمز
+    return "rgba(149, 165, 166, 0.85)"; // خاکستری
   });
 
   const chartConfig = {
@@ -351,7 +343,7 @@ async function sendResults(ctx, state) {
       labels,
       datasets: [
         {
-          label: "", // جلوگیری از نمایش 'undefined'
+          label: null, // تا legend چیزی نداشته باشه
           data,
           backgroundColor: backgroundColors,
           borderWidth: 0,
@@ -370,75 +362,58 @@ async function sendResults(ctx, state) {
           suggestedMax: 100,
           ticks: {
             color: "#e0e0e0",
-            font: { size: 10 },
+            font: { size: 10, family: "Vazir, sans-serif" },
           },
-          grid: {
-            color: "rgba(255,255,255,0.06)",
-          },
+          grid: { color: "rgba(255,255,255,0.08)" },
         },
         y: {
           ticks: {
             color: "#e0e0e0",
-            font: { size: 9 },
+            font: { size: 9, family: "Vazir, sans-serif" },
           },
         },
       },
       plugins: {
-        legend: { display: false }, // مطمئنن هیچ legend دیده نشه
+        legend: { display: false }, // legend کاملاً off
         title: {
           display: true,
           text: "Helix Archetype Profile",
           color: "#ffffff",
-          font: { size: 14 },
+          font: { size: 14, family: "Vazir, sans-serif" },
         },
       },
     },
   };
 
-  // پلاگین‌ها: گرادینت پس‌زمینه + لوگو NIL (اگر تنظیم شده)
+  // پلاگین گرادینت تمام‌صفحه
   const plugins = [
     {
       id: "bgGradient",
       beforeDraw: (chart) => {
-        const { ctx, chartArea } = chart;
-        if (!chartArea) return;
-
-        const gradient = ctx.createLinearGradient(
-          chartArea.left,
-          chartArea.top,
-          chartArea.right,
-          chartArea.bottom
-        );
+        const { ctx, width, height } = chart;
+        const gradient = ctx.createLinearGradient(0, 0, width, height);
         gradient.addColorStop(0, "#060b2e"); // آبی تیره
         gradient.addColorStop(1, "#3b1c5a"); // بنفش تیره
-
         ctx.save();
         ctx.fillStyle = gradient;
-        ctx.fillRect(
-          chartArea.left,
-          chartArea.top,
-          chartArea.right - chartArea.left,
-          chartArea.bottom - chartArea.top
-        );
+        ctx.fillRect(0, 0, width, height);
         ctx.restore();
       },
     },
   ];
 
+  // پلاگین لوگو در گوشه پایین راست
   if (NIL_LOGO_URL) {
     plugins.push({
       id: "nilLogo",
       afterDraw: (chart) => {
-        const { ctx, chartArea } = chart;
-        if (!chartArea) return;
+        const { ctx, width, height } = chart;
         const image = new Image();
         image.src = NIL_LOGO_URL;
-
         const logoWidth = 70;
         const logoHeight = 30;
-        const x = chartArea.right - logoWidth - 8;
-        const y = chartArea.bottom - logoHeight - 8;
-
+        const x = width - logoWidth - 8;
+        const y = height - logoHeight - 8;
         ctx.drawImage(image, x, y, logoWidth, logoHeight);
       },
     });
