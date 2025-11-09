@@ -1,9 +1,8 @@
 // =========================
 // Helix Archetype Bot - NIL Edition (Buttons, 1-5 Scale)
 // =========================
-const fetch = require("node-fetch");
-const { createCanvas, loadImage } = require("canvas");
 
+const { createCanvas, loadImage } = require("canvas");
 require("dotenv").config();
 const express = require("express");
 const { Telegraf, Markup } = require("telegraf");
@@ -17,11 +16,12 @@ const APP_URL = process.env.APP_URL; // مثل: https://helix-archetype-bot.onre
 const PORT = process.env.PORT || 3000;
 const NIL_LOGO_URL = process.env.NIL_LOGO_URL || "";
 
-console.log("NIL_LOGO_URL at runtime:",NIL_LOGO_URL)
 if (!BOT_TOKEN) {
   console.error("❌ BOT_TOKEN is missing.");
   process.exit(1);
 }
+
+console.log("🔍 NIL_LOGO_URL at runtime:", NIL_LOGO_URL);
 
 const bot = new Telegraf(BOT_TOKEN);
 const LOGO_STICKER_ID =
@@ -76,7 +76,7 @@ const archetypeDescriptions = {
     "خودمانی، واقعی و بی‌ادعا هستی. برایت مهم است که بخشی از یک جمع اصیل و صمیمی باشی.",
 };
 
-const TOTAL_QUESTIONS = questions.length; // الان 60
+const TOTAL_QUESTIONS = questions.length; // باید 60 باشد
 const QUESTIONS_PER_ARCHETYPE = TOTAL_QUESTIONS / archetypes.length; // 5
 const MAX_SCORE_PER_QUESTION = 5;
 const MAX_SCORE_PER_ARCHETYPE = QUESTIONS_PER_ARCHETYPE * MAX_SCORE_PER_QUESTION;
@@ -92,7 +92,6 @@ const userState = new Map();
 // HELPERS
 // -------------------------
 
-// ساخت آرایه رندوم 1..N
 function createShuffledQuestions() {
   const arr = [];
   for (let i = 1; i <= TOTAL_QUESTIONS; i++) arr.push(i);
@@ -103,17 +102,15 @@ function createShuffledQuestions() {
   return arr;
 }
 
-// بر اساس شماره سوال، آرکتایپ مربوطه
 function getArchetypeKeyForQuestion(qNumber) {
   if (qNumber < 1 || qNumber > TOTAL_QUESTIONS) return null;
-  const index = Math.floor((qNumber - 1) / QUESTIONS_PER_ARCHETYPE); // 0..11
+  const index = Math.floor((qNumber - 1) / QUESTIONS_PER_ARCHETYPE);
   const archetype = archetypes[index];
   return archetype ? archetype.key : null;
 }
 
-// ساخت نمودار متنی ساده (0 تا 10 بلوک)
 function makeBar(percent) {
-  const blocks = Math.round(percent / 10); // 0..10
+  const blocks = Math.round(percent / 10);
   const filled = "▓".repeat(blocks);
   const empty = "░".repeat(10 - blocks);
   return filled + empty;
@@ -189,7 +186,6 @@ bot.action("start_quiz", (ctx) => {
   sendNextQuestion(ctx);
 });
 
-// هندل انتخاب امتیاز ۱ تا ۵ با دکمه
 bot.action(/^score_([1-5])$/, (ctx) => {
   const userId = ctx.from.id;
   const state = userState.get(userId);
@@ -202,8 +198,8 @@ bot.action(/^score_([1-5])$/, (ctx) => {
   }
 
   const score = parseInt(ctx.match[1], 10);
-
   const currentIndex = state.currentIndex;
+
   if (currentIndex >= TOTAL_QUESTIONS) {
     state.finished = true;
     ctx.answerCbQuery();
@@ -230,7 +226,6 @@ bot.action(/^score_([1-5])$/, (ctx) => {
   return sendNextQuestion(ctx);
 });
 
-// ارسال سوال بعدی
 function sendNextQuestion(ctx) {
   const userId = ctx.from.id;
   const state = userState.get(userId);
@@ -273,7 +268,7 @@ function sendNextQuestion(ctx) {
 }
 
 // -------------------------
-// RESULTS + CHART WITH EMBEDDED LOGO
+// RESULTS + BAR CHART + OPTIONAL LOGO
 // -------------------------
 
 async function sendResults(ctx, state) {
@@ -322,7 +317,7 @@ async function sendResults(ctx, state) {
 
   await ctx.reply(msg, { parse_mode: "HTML" });
 
-  // ---------- BAR CHART CONFIG ----------
+  // داده‌های نمودار
   const topKeys = new Set(top3.map((r) => r.key));
   const lowKeys = new Set(low3.map((r) => r.key));
 
@@ -330,9 +325,9 @@ async function sendResults(ctx, state) {
   const data = results.map((r) => r.percent);
 
   const backgroundColors = results.map((r) => {
-    if (topKeys.has(r.key)) return "rgba(46, 204, 113, 0.9)"; // سبز
-    if (lowKeys.has(r.key)) return "rgba(231, 76, 60, 0.9)"; // قرمز
-    return "rgba(149, 165, 166, 0.85)"; // خاکستری
+    if (topKeys.has(r.key)) return "rgba(46, 204, 113, 0.9)";
+    if (lowKeys.has(r.key)) return "rgba(231, 76, 60, 0.9)";
+    return "rgba(149, 165, 166, 0.85)";
   });
 
   const chartConfig = {
@@ -396,30 +391,27 @@ async function sendResults(ctx, state) {
     encodeURIComponent(JSON.stringify(chartConfig));
 
   try {
-    // ۱) دریافت تصویر چارت از QuickChart
     const chartRes = await fetch(chartUrl);
-    const chartBuffer = await chartRes.buffer();
-    const chartImage = await loadImage(chartBuffer);
+    const chartBuffer = await chartRes.arrayBuffer();
+    const chartImage = await loadImage(Buffer.from(chartBuffer));
 
-    let finalBuffer = chartBuffer;
+    let finalBuffer = Buffer.from(chartBuffer);
 
-    // ۲) اگر لوگو داریم، به‌صورت واترمارک پایین راست اضافه کنیم
     if (NIL_LOGO_URL) {
+      console.log("✅ Drawing NIL logo on chart...");
       const logoRes = await fetch(NIL_LOGO_URL);
-      const logoBuffer = await logoRes.buffer();
-      const logoImage = await loadImage(logoBuffer);
+      const logoBuffer = await logoRes.arrayBuffer();
+      const logoImage = await loadImage(Buffer.from(logoBuffer));
 
       const canvas = createCanvas(chartImage.width, chartImage.height);
       const c = canvas.getContext("2d");
 
-      // پس‌زمینه: خود چارت
       c.drawImage(chartImage, 0, 0);
 
-      // ابعاد لوگو نسبتی به عرض چارت
-      const logoWidth = Math.floor(chartImage.width * 0.16); // ~16% عرض
+      const logoWidth = Math.floor(chartImage.width * 0.18);
       const aspect = logoImage.width / logoImage.height;
       const logoHeight = Math.floor(logoWidth / aspect);
-      const margin = Math.floor(chartImage.width * 0.02);
+      const margin = Math.floor(chartImage.width * 0.03);
 
       const x = chartImage.width - logoWidth - margin;
       const y = chartImage.height - logoHeight - margin;
@@ -429,16 +421,14 @@ async function sendResults(ctx, state) {
       finalBuffer = canvas.toBuffer();
     }
 
-    // ۳) ارسال تصویر نهایی
     await ctx.replyWithPhoto({ source: finalBuffer }, {
       caption: "📊 نمای میله‌ای آرکتایپ‌ها — سبز: فعال‌تر، قرمز: کم‌فعال‌تر",
     });
   } catch (err) {
     console.error("🚨 Error generating chart with logo:", err);
-    // در صورت خطا، حداقل خود چارت خام رو می‌فرستیم
     await ctx.replyWithPhoto(chartUrl, {
       caption:
-        "📊 نمای میله‌ای آرکتایپ‌ها — سبز: فعال‌تر، قرمز: کم‌فعال‌تر (لوگو ممکنه در این نسخه نیومده باشه)",
+        "📊 نمای میله‌ای آرکتایپ‌ها — سبز: فعال‌تر، قرمز: کم‌فعال‌تر",
     });
   }
 }
@@ -487,6 +477,18 @@ app.listen(PORT, async () => {
   }
 });
 
-// Graceful stop
-process.once("SIGINT", () => bot.stop("SIGINT"));
-process.once("SIGTERM", () => bot.stop("SIGTERM"));
+// Graceful stop (با محافظت از خطای Bot is not running)
+process.once("SIGINT", () => {
+  try {
+    bot.stop("SIGINT");
+  } catch (e) {
+    console.log("Bot already stopped (SIGINT).");
+  }
+});
+process.once("SIGTERM", () => {
+  try {
+    bot.stop("SIGTERM");
+  } catch (e) {
+    console.log("Bot already stopped (SIGTERM).");
+  }
+});
