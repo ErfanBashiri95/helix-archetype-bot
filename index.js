@@ -283,13 +283,13 @@ async function sendResults(ctx, state) {
     return { key: a.key, label: a.label, raw, percent };
   });
 
-  // مرتب‌سازی بر اساس درصد
+  // مرتب‌سازی نزولی
   results.sort((a, b) => b.percent - a.percent);
 
   const top3 = results.slice(0, 3);
   const low3 = results.slice(-3).reverse();
 
-  // ---------- متن ----------
+  // ---------- متن نتیجه ----------
 
   let msg =
     `🌌 <b>پروفایل آرکتایپی تو در NIL</b>\n` +
@@ -325,7 +325,7 @@ async function sendResults(ctx, state) {
 
   await ctx.reply(msg, { parse_mode: "HTML" });
 
-  // ---------- نمودار میله‌ای (بدون legend، پس‌زمینه تیره، ۱۲ میله کامل) ----------
+  // ---------- نمودار میله‌ای تمیز ----------
 
   const topKeys = new Set(top3.map((r) => r.key));
   const lowKeys = new Set(low3.map((r) => r.key));
@@ -334,9 +334,9 @@ async function sendResults(ctx, state) {
   const data = results.map((r) => r.percent);
 
   const backgroundColors = results.map((r) => {
-    if (topKeys.has(r.key)) return "rgba(46, 204, 113, 0.9)"; // سبز برای ۳ غالب
-    if (lowKeys.has(r.key)) return "rgba(231, 76, 60, 0.9)"; // قرمز برای ۳ کم‌فعال‌تر
-    return "rgba(149, 165, 166, 0.85)"; // خاکستری بقیه
+    if (topKeys.has(r.key)) return "rgba(46, 204, 113, 0.9)"; // سبز برای غالب‌ها
+    if (lowKeys.has(r.key)) return "rgba(231, 76, 60, 0.9)"; // قرمز برای کم‌فعال‌ترها
+    return "rgba(149, 165, 166, 0.85)"; // خاکستری برای بقیه
   });
 
   const chartConfig = {
@@ -345,11 +345,10 @@ async function sendResults(ctx, state) {
       labels,
       datasets: [
         {
-          // بدون label تا legend چیزی نداشته باشه
-          label: "",
+          label: "", // هیچ متنی برای legend
           data,
           backgroundColor: backgroundColors,
-          borderWidth: 0
+          borderWidth: 0,
         },
       ],
     },
@@ -357,19 +356,17 @@ async function sendResults(ctx, state) {
       indexAxis: "y",
       responsive: true,
       layout: {
-        padding: { left: 10, right: 10, top: 10, bottom: 10 },
+        padding: { left: 16, right: 16, top: 16, bottom: 16 },
       },
       scales: {
         x: {
-          min: 0, // از ۰ شروع کن
-          max: 100, // تا ۱۰۰
+          min: 0,
+          max: 100,
           ticks: {
             color: "#e0e0e0",
             font: { size: 10, family: "Vazir, sans-serif" },
           },
-          grid: {
-            color: "rgba(255,255,255,0.08)",
-          },
+          grid: { color: "rgba(255,255,255,0.15)" },
         },
         y: {
           ticks: {
@@ -379,17 +376,16 @@ async function sendResults(ctx, state) {
         },
       },
       plugins: {
-        legend: { display: false }, // legend کامل غیر فعال
+        legend: {
+          display: false, // نوار سبز/legend کامل حذف
+        },
         title: {
-          display: true,
-          text: "Helix Archetype Profile",
-          color: "#ffffff",
-          font: { size: 14, family: "Vazir, sans-serif" },
+          display: false, // اگر نخواای چیزی بالا باشه
         },
       },
     },
-    // پس‌زمینه‌ی کل نمودار (نزدیک به آبی-بنفش تیره)
-    backgroundColor: "#070c2e"
+    // رنگ پس‌زمینه کل تصویر
+    backgroundColor: "#070c2e", // آبی خیلی تیره متمایل به بنفش
   };
 
   const chartUrl =
