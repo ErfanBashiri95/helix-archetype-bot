@@ -372,7 +372,7 @@ async function sendResults(ctx, state) {
         xAxes: [
           {
             ticks: {
-              fontSize: 9,
+              fontSize: 13,
               fontColor: "#666666",
               maxRotation: 55,
               minRotation: 55,
