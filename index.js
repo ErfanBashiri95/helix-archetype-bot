@@ -403,7 +403,7 @@ async function sendResults(ctx, state) {
   };
 
   const chartUrl =
-    "https://quickchart.io/chart?c=" +
+    "https://quickchart.io/chart?plugins=watermark&c=" +
     encodeURIComponent(JSON.stringify(chartConfig));
 
   await ctx.replyWithPhoto(chartUrl, {
