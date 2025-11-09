@@ -325,7 +325,7 @@ async function sendResults(ctx, state) {
 
   await ctx.reply(msg, { parse_mode: "HTML" });
 
-  // ---------- نمودار میله‌ای ----------
+  // ---------- نمودار میله‌ای ۱۲تایی ----------
 
   const topKeys = new Set(top3.map((r) => r.key));
   const lowKeys = new Set(low3.map((r) => r.key));
@@ -345,7 +345,7 @@ async function sendResults(ctx, state) {
       labels,
       datasets: [
         {
-          label: "", // هیچ متنی برای legend
+          label: "", // legend خالی → نوار بالایی حذف
           data,
           backgroundColor: backgroundColors,
           borderWidth: 0,
@@ -353,36 +353,46 @@ async function sendResults(ctx, state) {
       ],
     },
     options: {
-      indexAxis: "y",
       responsive: true,
       layout: {
         padding: { left: 16, right: 16, top: 16, bottom: 16 },
       },
-      scales: {
-        x: {
-          min: 0,
-          max: 100,
-          ticks: {
-            color: "#666666",
-            font: { size: 10 },
-          },
-          grid: { color: "rgba(0,0,0,0.08)" },
-        },
-        y: {
-          ticks: {
-            color: "#666666",
-            font: { size: 9 },
-          },
-        },
-      },
-      // برای Chart.js v2
       legend: {
         display: false,
       },
-      // برای Chart.js v3
+      title: {
+        display: false,
+      },
+      scales: {
+        yAxes: [
+          {
+            ticks: {
+              beginAtZero: true,
+              min: 0,
+              max: 100,
+              fontSize: 10,
+              fontColor: "#666666",
+            },
+            gridLines: {
+              color: "rgba(0,0,0,0.08)",
+            },
+          },
+        ],
+        xAxes: [
+          {
+            ticks: {
+              fontSize: 9,
+              fontColor: "#666666",
+              maxRotation: 55,
+              minRotation: 55,
+            },
+            gridLines: {
+              display: false,
+            },
+          },
+        ],
+      },
       plugins: {
-        legend: { display: false }, // نوار سبز بالایی کامل غیرفعال
-        title: { display: false },
         // واترمارک لوگو در پایین راست (اگر NIL_LOGO_URL تنظیم شده باشد)
         ...(NIL_LOGO_URL
           ? {
@@ -390,15 +400,14 @@ async function sendResults(ctx, state) {
                 image: NIL_LOGO_URL,
                 alignX: "right",
                 alignY: "bottom",
-                width: 80,
-                height: 40,
                 opacity: 1,
+                width: 80,
+                height: 32,
               },
             }
           : {}),
       },
     },
-    // فعال کردن پلاگین واترمارک در QuickChart (در صورت وجود لوگو)
     ...(NIL_LOGO_URL ? { plugins: ["watermark"] } : {}),
   };
 
@@ -410,7 +419,6 @@ async function sendResults(ctx, state) {
     caption: "📊 نمای میله‌ای آرکتایپ‌ها — سبز: فعال‌تر، قرمز: کم‌فعال‌تر",
   });
 }
-
 
 // -------------------------
 // SERVER + WEBHOOK + HEALTH
